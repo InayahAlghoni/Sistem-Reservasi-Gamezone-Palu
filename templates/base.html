@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ brand }}{% endblock %} — {{ brand }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lilita+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+{% include "_icons.html" %}
+{% set ep = request.endpoint or '' %}
+<header class="topbar">
+  <div class="topbar__in">
+    <a class="brand display" href="{{ url_for('index') }}#beranda">{{ brand }}</a>
+    <nav class="nav" id="nav" aria-label="Navigasi utama">
+      {% block nav %}
+      <a href="{{ url_for('index') }}#beranda">Beranda</a>
+      <a href="{{ url_for('index') }}#unit">Unit &amp; Harga</a>
+      <a href="{{ url_for('index') }}#reservasi">Reservasi</a>
+      <a href="{{ url_for('index') }}#kontak">Kontak</a>
+      {% endblock %}
+    </nav>
+    <button class="icon-btn navtoggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="nav"><svg><use href="#i-menu"/></svg></button>
+  </div>
+</header>
+
+<main class="wrap {% block wrap_class %}{% endblock %}">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}<div class="flash flash--{{ cat }}" role="status">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <p>© {{ brand }} Playstation · {{ address }}</p>
+  {% if require_login %}<p><a href="{{ url_for('admin') }}">Admin</a></p>{% endif %}
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

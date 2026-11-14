@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, csrf with context %}
+{% block title %}Status Reservasi{% endblock %}
+{% block wrap_class %}wrap--narrow{% endblock %}
+{% block content %}
+<h1 class="page-title display">Status Reservasi</h1>
+{% set hints = {'pending': 'Belum ada bukti pembayaran. Unggah bukti agar bisa diverifikasi.', 'verifikasi': 'Bukti diterima. Admin sedang memeriksa pembayaranmu.', 'dikonfirmasi': 'Reservasi dikonfirmasi. Datang sesuai jadwal ya!', 'selesai': 'Terima kasih sudah bermain di Gamezone.', 'dibatalkan': 'Reservasi dibatalkan. Slot dilepas kembali.'} %}
+{% if rows %}
+  {% for b in rows %}
+  <article class="bk {{ 'bk--new' if b.code == baru }}" id="{{ b.code }}">
+    <div class="bk__head"><strong class="display">{{ b.code }}</strong>{{ badge(b.status) }}</div>
+    <p class="bk__hint">{{ hints[b.status] }}</p>
+    <dl class="summary">
+      <div><dt>Ruangan</dt><dd>{{ b.room_name }} · {{ b.unit_label }} ({{ b.console }})</dd></div>
+      <div><dt>Tanggal</dt><dd>{{ b.date|tanggal }}</dd></div>
+      <div><dt>Jam</dt><dd>{{ b.start_hour|jam }} – {{ (b.start_hour + b.duration)|jam }} ({{ b.duration }} jam)</dd></div>
+      <div><dt>Total</dt><dd>{{ b.total|rupiah }}</dd></div>
+      <div><dt>Atas nama</dt><dd>{{ b.name }}</dd></div>
+    </dl>
+    {% if b.status == 'pending' %}
+    <form class="bk__up" method="post" action="{{ url_for('status_bukti', code=b.code) }}" enctype="multipart/form-data">
+      {{ csrf() }}
+      <input class="field" type="file" name="proof" accept="image/jpeg,image/png,image/webp,application/pdf" required aria-label="Bukti pembayaran">
+      <button class="btn btn--primary btn--sm display" type="submit">Unggah bukti</button>
+    </form>
+    {% endif %}
+  </article>
+  {% endfor %}
+{% else %}
+  <div class="card empty"><p>Belum ada reservasi di perangkat ini.</p><a class="btn btn--primary display" href="{{ url_for('reservasi') }}">Buat Reservasi</a></div>
+{% endif %}
+
+<section class="card">
+  <h2 class="label display">Cari reservasi lain</h2>
+  <p class="hint" style="margin:0 0 14px">Reservasi dari perangkat lain bisa ditampilkan dengan kode booking dan nomor WhatsApp.</p>
+  <form method="post" action="{{ url_for('status_cari') }}" class="find">
+    {{ csrf() }}
+    <input class="field" name="kode" placeholder="Kode, mis. GZ-A1B2C3" required maxlength="12" aria-label="Kode booking">
+    <input class="field" name="hp" type="tel" placeholder="Nomor WhatsApp" required aria-label="Nomor WhatsApp">
+    <button class="btn btn--ghost display" type="submit">Cari</button>
+  </form>
+</section>
+{% endblock %}

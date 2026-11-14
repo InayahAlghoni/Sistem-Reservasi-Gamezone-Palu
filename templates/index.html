@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Reservasi{% endblock %}
+{% block content %}
+<section class="hero" id="beranda">
+  <div class="logo-slot">{% if logo %}<img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo {{ brand }} Playstation">{% endif %}</div>
+  <h1 class="sr-only">{{ brand }}</h1>
+  <p class="hero__sub display">Reservasi</p>
+  <p class="hero__desc">{{ tagline }}<br>{{ address }}</p>
+  <div class="cta">
+    <a class="btn btn--primary display" href="#reservasi">Reservasi Sekarang</a>
+    <a class="btn btn--ghost display" href="#unit">Lihat Unit &amp; Harga</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="label display">Tentang Game Zone</h2>
+  <p class="prose">{{ brand }} Playstation adalah tempat rental game di Kota Palu dengan tiga pilihan ruangan: <strong>VIP Room</strong> (PS5, Nintendo Switch, <strong>karaoke</strong>, dan Netflix), <strong>Reguler Room</strong>, dan <strong>Smoking Room</strong> (PS4 &amp; PS3). Semua ruangan ber-AC dengan stik original Sony.</p>
+  <ul class="info">
+    <li><svg><use href="#i-pin"/></svg>{{ address }}</li>
+    <li><svg><use href="#i-clock"/></svg>{{ open_text }}</li>
+  </ul>
+</section>
+
+<section id="unit" class="section">
+  <h2 class="section-title display">Unit &amp; Harga</h2>
+  <p class="hint lead">Harga per jam. Pilih unit lalu lanjut ke reservasi.</p>
+  {% for g in groups %}{% set r = g.room %}
+  <div class="room-sec" id="room-{{ r.slug }}">
+    <div class="room-sec__head">
+      <div><h3 class="display">{{ r.name }}</h3><p>{{ r.description }}</p></div>
+      <span class="pill {{ 'pill--smoke' if r.smoking }}">{{ 'Smoking' if r.smoking else 'No smoking' }}</span>
+    </div>
+    <div class="grid grid--units">
+      {% for u in g.units %}
+      <article class="unit">
+        <div class="unit__top">
+          <div><h4 class="display">{{ u.label }}</h4></div>
+          <div class="unit__price"><strong>{{ u.price|rupiah }}</strong><span>/jam</span></div>
+        </div>
+        <div class="tags tags--console">{% for x in u.console.split('+') %}<span>{% if 'karaoke' in x|lower %}<svg><use href="#i-mic"/></svg>{% endif %}{{ x|trim }}</span>{% endfor %}</div>
+        {% if u.extras %}<div class="tags tags--extra">{% for x in u.extras|csv %}<span>{{ x }}</span>{% endfor %}</div>{% endif %}
+        {% if u.games %}<p class="unit__gl">Daftar game</p><div class="tags">{% for x in u.games|csv %}<span>{{ x }}</span>{% endfor %}</div>{% endif %}
+        <button type="button" class="btn btn--ghost btn--sm display js-pick" data-unit="{{ u.id }}">Reservasi unit ini</button>
+      </article>
+      {% else %}<p class="hint">Belum ada unit aktif.</p>{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<section id="reservasi" class="section narrow">
+  <h2 class="section-title display">Reservasi &amp; Pembayaran</h2>
+  <form id="rsv" novalidate>
+    <section class="card">
+      <label class="label display" for="name"><svg><use href="#i-user"/></svg>Nama</label>
+      <input class="field" id="name" name="name" type="text" placeholder="Nama lengkap" autocomplete="name" maxlength="60">
+      <p class="err" id="err-name" hidden></p>
+      <label class="label display" for="phone"><svg><use href="#i-wa"/></svg>Nomor WhatsApp</label>
+      <div class="phone"><span class="phone__cc">+62</span>
+        <input class="field" id="phone" name="phone" type="tel" inputmode="numeric" placeholder="8xxxxxxxxxx" autocomplete="tel-national"></div>
+      <p class="hint"><strong>Pastikan nomor WhatsApp benar.</strong> Konfirmasi dikirim via WhatsApp.</p>
+      <p class="err" id="err-phone" hidden></p>
+    </section>
+
+    <section class="card">
+      <label class="label display" for="room"><svg><use href="#i-pad"/></svg>Ruangan</label>
+      <select class="field" id="room">{% for r in cfg.rooms %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}</select>
+      <label class="label display" for="unit-sel"><svg><use href="#i-tag"/></svg>Unit</label>
+      <select class="field" id="unit-sel"></select>
+      <p class="hint" id="unitInfo"></p>
+
+      <h3 class="label display"><svg><use href="#i-cal"/></svg>Tanggal</h3>
+      <div class="datebox"><div class="field datebox__view" id="dateView"></div>
+        <input type="date" id="date" aria-label="Pilih tanggal"></div>
+      <p class="hint">Bisa booking sampai 7 hari ke depan.</p>
+
+      <h3 class="label display"><svg><use href="#i-hour"/></svg>Durasi bermain</h3>
+      <div class="durations" id="durations"></div>
+      <p class="hint">Untuk reservasi di atas 4 jam, silakan hubungi admin via WhatsApp.</p>
+
+      <h3 class="label display"><svg><use href="#i-clock"/></svg>Jam mulai</h3>
+      <button type="button" class="field startbtn" id="startBtn" aria-expanded="false"><span id="startText">Pilih durasi dulu</span><svg class="chev"><use href="#i-right"/></svg></button>
+      <div class="slots" id="slots" hidden></div>
+    </section>
+
+    <section class="card">
+      <h3 class="label display"><svg><use href="#i-list"/></svg>Ringkasan reservasi</h3>
+      <dl class="summary" id="summary"></dl>
+    </section>
+
+    <section class="card">
+      <h3 class="label display"><svg><use href="#i-tag"/></svg>Pembayaran (QRIS)</h3>
+      <p class="hint" style="margin:0 0 14px">Scan QRIS, bayar sesuai <strong>total</strong>, lalu unggah bukti pembayarannya.</p>
+      <div class="qris">
+        {% if has_qris %}<img src="{{ url_for('static', filename='img/qris.png') }}" alt="QRIS pembayaran {{ brand }}">
+        {% else %}<div class="qris__empty">Gambar QRIS belum dipasang.<br><small>Taruh file <code>qris.png</code> di <code>static/img/</code></small></div>{% endif %}
+        <p class="qris__total">Total bayar <strong id="payTotal">—</strong></p>
+      </div>
+      <label class="label display" for="proof"><svg><use href="#i-upload"/></svg>Bukti pembayaran {% if not proof_required %}<small>(opsional)</small>{% endif %}</label>
+      <label class="upload" for="proof"><svg><use href="#i-upload"/></svg><span id="proofName">Pilih file (JPG, PNG, WEBP, PDF · maks {{ max_mb }} MB)</span></label>
+      <input class="sr-only" id="proof" name="proof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+      <p class="err" id="err-proof" hidden></p>
+    </section>
+
+    <button class="btn btn--primary btn--block display" id="submit" type="submit">Kirim Reservasi</button>
+    <p class="hint center">Reservasi diverifikasi admin setelah pembayaran dicek. Konfirmasi dikirim via WhatsApp.</p>
+  </form>
+
+  <section class="card done" id="done" tabindex="-1" hidden>
+    <div class="done__badge"><svg><use href="#i-check"/></svg></div>
+    <h3 class="display">Reservasi terkirim</h3>
+    <p class="hint center" style="margin:0 0 4px">Kode booking: <strong id="doneCode"></strong></p>
+    <dl class="summary" id="doneSummary"></dl>
+    <p class="hint center">Admin akan memverifikasi pembayaranmu. Simpan kode booking ini.</p>
+    <a class="btn btn--primary btn--block display" id="doneWa" target="_blank" rel="noopener" style="margin-top:16px">Konfirmasi via WhatsApp</a>
+    <button class="btn btn--ghost btn--block display" id="again" type="button" style="margin-top:10px">Buat reservasi lagi</button>
+  </section>
+</section>
+
+<section id="kontak" class="section card">
+  <h2 class="label display">Hubungi Kami</h2>
+  <p class="hint" style="margin:0 0 14px">Reservasi juga bisa lewat kanal berikut. Admin akan menandai jadwalmu di sistem.</p>
+  <div class="socials">
+    <a class="social" href="https://wa.me/{{ admin_wa }}" target="_blank" rel="noopener"><svg><use href="#i-wa"/></svg>WhatsApp</a>
+    <a class="social" href="{{ tiktok }}" target="_blank" rel="noopener"><svg><use href="#i-tt"/></svg>TikTok</a>
+    <a class="social" href="{{ instagram }}" target="_blank" rel="noopener"><svg><use href="#i-ig"/></svg>Instagram</a>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>window.GZ = {{ cfg | tojson }};</script>
+<script src="{{ url_for('static', filename='js/reservasi.js') }}"></script>
+{% endblock %}

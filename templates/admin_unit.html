@@ -1,0 +1,50 @@
+{% extends "admin_base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}Kelola Unit{% endblock %}
+{% block wrap_class %}wrap--wide{% endblock %}
+{% macro unit_fields(u, groups) %}
+  <div class="fgrid">
+    <label>Ruangan<select class="field field--sm" name="room_id">{% for g in groups %}<option value="{{ g.room.id }}" {{ 'selected' if u and u.room_id == g.room.id }}>{{ g.room.name }}</option>{% endfor %}</select></label>
+    <label>Nama unit<input class="field field--sm" name="label" value="{{ u.label if u }}" required maxlength="40"></label>
+    <label>Konsol<input class="field field--sm" name="console" value="{{ u.console if u }}" placeholder="PS4 / PS5 / Switch" required maxlength="60"></label>
+    <label>Harga per jam (Rp)<input class="field field--sm" name="price" type="number" min="0" step="500" value="{{ u.price if u }}" required></label>
+    <label class="span2">Fasilitas tambahan (pisahkan koma)<input class="field field--sm" name="extras" value="{{ u.extras if u }}" placeholder="Netflix Premium, Karaoke" maxlength="120"></label>
+    <label class="span2">Daftar game (pisahkan koma)<textarea class="field field--sm" name="games" rows="2" maxlength="600">{{ u.games if u }}</textarea></label>
+    <label>Urutan<input class="field field--sm" name="sort" type="number" value="{{ u.sort if u else 0 }}"></label>
+    <label class="check"><input type="checkbox" name="active" {{ 'checked' if (not u) or u.active }}> Aktif (bisa dipesan)</label>
+  </div>
+{% endmacro %}
+{% block content %}
+<h1 class="page-title display">Kelola Ruangan &amp; Unit</h1>
+
+<section class="card">
+  <h2 class="label display">Tambah unit</h2>
+  <form method="post" action="{{ url_for('admin_unit_save') }}">{{ csrf() }}{{ unit_fields(none, groups) }}
+    <button class="btn btn--primary btn--sm display" type="submit">Tambah unit</button></form>
+</section>
+
+{% for g in groups %}
+<section class="card">
+  <h2 class="label display">{{ g.room.name }}</h2>
+  <form method="post" action="{{ url_for('admin_room_save', rid=g.room.id) }}" class="fgrid">
+    {{ csrf() }}
+    <label>Nama ruangan<input class="field field--sm" name="name" value="{{ g.room.name }}" required maxlength="60"></label>
+    <label class="span2">Deskripsi<input class="field field--sm" name="description" value="{{ g.room.description }}" maxlength="300"></label>
+    <div class="fend"><button class="btn btn--ghost btn--sm display" type="submit">Simpan ruangan</button></div>
+  </form>
+  <div class="units-admin">
+    {% for u in g.units %}
+    <details class="uadm" {{ 'open' if false }}>
+      <summary><strong>{{ u.label }}</strong> · {{ u.console }} · {{ u.price|rupiah }}/jam {% if not u.active %}<span class="badge badge--dibatalkan">Nonaktif</span>{% endif %}</summary>
+      <form method="post" action="{{ url_for('admin_unit_save') }}">{{ csrf() }}<input type="hidden" name="id" value="{{ u.id }}">
+        {{ unit_fields(u, groups) }}
+        <div class="row-btns"><button class="btn btn--primary btn--sm display" type="submit">Simpan</button></div>
+      </form>
+      <form method="post" action="{{ url_for('admin_unit_delete', uid=u.id) }}" onsubmit="return confirm('Hapus unit {{ u.label }}?')">{{ csrf() }}
+        <button class="btn btn--danger btn--sm display" type="submit">Hapus unit</button></form>
+    </details>
+    {% else %}<p class="hint">Belum ada unit.</p>{% endfor %}
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

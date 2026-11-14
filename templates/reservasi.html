@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Reservasi{% endblock %}
+{% block wrap_class %}wrap--narrow{% endblock %}
+{% block content %}
+<h1 class="page-title display">Reservasi &amp; Pembayaran</h1>
+<form id="rsv" novalidate>
+  <section class="card">
+    <label class="label display" for="name"><svg><use href="#i-user"/></svg>Nama</label>
+    <input class="field" id="name" name="name" type="text" placeholder="Nama lengkap" autocomplete="name" maxlength="60">
+    <p class="err" id="err-name" hidden></p>
+    <label class="label display" for="phone"><svg><use href="#i-wa"/></svg>Nomor WhatsApp</label>
+    <div class="phone"><span class="phone__cc">+62</span>
+      <input class="field" id="phone" name="phone" type="tel" inputmode="numeric" placeholder="8xxxxxxxxxx" autocomplete="tel-national"></div>
+    <p class="hint"><strong>Pastikan nomor WhatsApp benar.</strong> Konfirmasi dikirim via WhatsApp.</p>
+    <p class="err" id="err-phone" hidden></p>
+  </section>
+
+  <section class="card">
+    <label class="label display" for="room"><svg><use href="#i-pad"/></svg>Ruangan</label>
+    <select class="field" id="room">{% for r in cfg.rooms %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}</select>
+    <label class="label display" for="unit"><svg><use href="#i-tag"/></svg>Unit</label>
+    <select class="field" id="unit"></select>
+    <p class="hint" id="unitInfo"></p>
+    <p class="hint"><a class="link" href="{{ url_for('unit') }}">Lihat daftar game &amp; harga <svg><use href="#i-right"/></svg></a></p>
+
+    <h2 class="label display"><svg><use href="#i-cal"/></svg>Tanggal</h2>
+    <div class="datebox"><div class="field datebox__view" id="dateView"></div>
+      <input type="date" id="date" aria-label="Pilih tanggal"></div>
+    <p class="hint">Bisa booking sampai 7 hari ke depan.</p>
+
+    <h2 class="label display"><svg><use href="#i-hour"/></svg>Durasi bermain</h2>
+    <div class="durations" id="durations"></div>
+    <p class="hint">Untuk reservasi di atas 4 jam, silakan hubungi admin via WhatsApp.</p>
+
+    <h2 class="label display"><svg><use href="#i-clock"/></svg>Jam mulai</h2>
+    <button type="button" class="field startbtn" id="startBtn" aria-expanded="false"><span id="startText">Pilih durasi dulu</span><svg class="chev"><use href="#i-right"/></svg></button>
+    <div class="slots" id="slots" hidden></div>
+  </section>
+
+  <section class="card">
+    <h2 class="label display"><svg><use href="#i-list"/></svg>Ringkasan reservasi</h2>
+    <dl class="summary" id="summary"></dl>
+  </section>
+
+  <section class="card">
+    <h2 class="label display"><svg><use href="#i-tag"/></svg>Pembayaran (QRIS)</h2>
+    <p class="hint" style="margin:0 0 14px">Scan QRIS, bayar sesuai <strong>total</strong>, lalu unggah bukti pembayarannya.</p>
+    <div class="qris">
+      {% if has_qris %}<img src="{{ url_for('static', filename='img/qris.png') }}" alt="QRIS pembayaran {{ brand }}">
+      {% else %}<div class="qris__empty">Gambar QRIS belum dipasang.<br><small>Taruh file <code>qris.png</code> di <code>static/img/</code></small></div>{% endif %}
+      <p class="qris__total">Total bayar <strong id="payTotal">—</strong></p>
+    </div>
+    <label class="label display" for="proof"><svg><use href="#i-upload"/></svg>Bukti pembayaran {% if not proof_required %}<small>(opsional)</small>{% endif %}</label>
+    <label class="upload" for="proof"><svg><use href="#i-upload"/></svg><span id="proofName">Pilih file (JPG, PNG, WEBP, PDF · maks {{ max_mb }} MB)</span></label>
+    <input class="sr-only" id="proof" name="proof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+    <p class="err" id="err-proof" hidden></p>
+  </section>
+
+  <button class="btn btn--primary btn--block display" id="submit" type="submit">Kirim Reservasi</button>
+  <p class="hint center">Reservasi diverifikasi admin setelah pembayaran dicek. Pantau di halaman <a href="{{ url_for('status') }}">Status</a>.</p>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>window.GZ = {{ cfg | tojson }};</script>
+<script src="{{ url_for('static', filename='js/reservasi.js') }}"></script>
+{% endblock %}

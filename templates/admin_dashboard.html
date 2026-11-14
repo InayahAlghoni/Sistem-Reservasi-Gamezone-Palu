@@ -1,0 +1,66 @@
+{% extends "admin_base.html" %}
+{% from "_macros.html" import badge, csrf with context %}
+{% block title %}Dashboard Admin{% endblock %}
+{% block wrap_class %}wrap--wide{% endblock %}
+{% macro actions(b) %}
+  {% for to in transitions[b.status] %}
+  <form method="post" action="{{ url_for('admin_set_status', bid=b.id) }}" class="inline">
+    {{ csrf() }}<input type="hidden" name="status" value="{{ to }}">
+    <button class="btn btn--sm {{ 'btn--primary' if to == 'dikonfirmasi' else 'btn--danger' if to == 'dibatalkan' else 'btn--ghost' }}" type="submit"
+      {% if to == 'dibatalkan' %}onclick="return confirm('Batalkan reservasi {{ b.code }}?')"{% endif %}>{{ {'dikonfirmasi':'Konfirmasi','dibatalkan':'Batalkan','selesai':'Selesai'}[to] }}</button>
+  </form>
+  {% endfor %}
+{% endmacro %}
+{% macro wa(b) %}<a class="link" target="_blank" rel="noopener" href="https://wa.me/62{{ b.phone }}?text={{ ('Halo ' ~ b.name ~ ', reservasi ' ~ b.code ~ ' di Gamezone')|urlencode }}">+62{{ b.phone }}</a>{% endmacro %}
+{% block content %}
+<h1 class="page-title display">Dashboard Admin</h1>
+{% if default_pw %}<div class="flash flash--error">Password admin masih default. Set environment variable <code>ADMIN_PASSWORD</code> sebelum dipakai publik.</div>{% endif %}
+
+<section class="stats">
+  <div class="stat"><span>Perlu diverifikasi</span><strong>{{ stats.verify }}</strong></div>
+  <div class="stat"><span>Pending (belum bayar)</span><strong>{{ stats.pending }}</strong></div>
+  <div class="stat"><span>Jadwal hari ini</span><strong>{{ stats.today }}</strong></div>
+  <div class="stat"><span>Total reservasi web</span><strong>{{ stats.total }}</strong></div>
+</section>
+
+<section class="card card--flush">
+  <h2 class="label display pad">Reservasi masuk (perlu verifikasi)</h2>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Kode</th><th>Pelanggan</th><th>Unit</th><th>Jadwal</th><th>Total</th><th>Bukti</th><th>Status</th><th>Aksi</th></tr></thead>
+    <tbody>
+    {% for b in verify %}
+      <tr>
+        <td><strong>{{ b.code }}</strong></td><td>{{ b.name }}<br>{{ wa(b) }}</td>
+        <td>{{ b.room_name }}<br><small>{{ b.unit_label }}</small></td>
+        <td>{{ b.date|tanggal_pendek }}<br><small>{{ b.start_hour|jam }}–{{ (b.start_hour+b.duration)|jam }}</small></td>
+        <td>{{ b.total|rupiah }}</td>
+        <td>{% if b.proof %}<a class="link" target="_blank" rel="noopener" href="{{ url_for('admin_proof', filename=b.proof) }}">Lihat</a>{% else %}<small>Belum ada</small>{% endif %}</td>
+        <td>{{ badge(b.status) }}</td><td class="acts">{{ actions(b) }}</td>
+      </tr>
+    {% else %}<tr><td colspan="8" class="empty-cell">Tidak ada reservasi yang menunggu. 🎉</td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+
+<section class="card card--flush">
+  <div class="pad row">
+    <h2 class="label display" style="margin:0">Semua reservasi</h2>
+    <form method="get" class="inline"><label class="sr-only" for="flt">Filter status</label>
+      <select class="field field--sm" id="flt" name="status" onchange="this.form.submit()">
+        <option value="">Semua status</option>
+        {% for k, v in STATUS_LABEL.items() %}<option value="{{ k }}" {{ 'selected' if flt == k }}>{{ v }}</option>{% endfor %}
+      </select></form>
+  </div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Kode</th><th>Pelanggan</th><th>Unit</th><th>Jadwal</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead>
+    <tbody>
+    {% for b in rows %}
+      <tr>
+        <td><strong>{{ b.code }}</strong></td><td>{{ b.name }}<br>{{ wa(b) }}</td>
+        <td>{{ b.room_name }}<br><small>{{ b.unit_label }}</small></td>
+        <td>{{ b.date|tanggal_pendek }}<br><small>{{ b.start_hour|jam }}–{{ (b.start_hour+b.duration)|jam }}</small></td>
+        <td>{{ b.total|rupiah }}</td><td>{{ badge(b.status) }}</td><td class="acts">{{ actions(b) }}</td>
+      </tr>
+    {% else %}<tr><td colspan="7" class="empty-cell">Belum ada data.</td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+{% endblock %}

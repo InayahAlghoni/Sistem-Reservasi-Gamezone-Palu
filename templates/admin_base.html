@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% from "_macros.html" import csrf with context %}
+
 {% block nav %}
-<a href="{{ url_for('admin') }}" class="{{ 'on' if request.endpoint=='admin' }}">Dashboard</a>
-<a href="{{ url_for('admin_unit') }}" class="{{ 'on' if request.endpoint=='admin_unit' }}">Kelola Unit</a>
-<a href="{{ url_for('admin_block') }}" class="{{ 'on' if request.endpoint=='admin_block' }}">Blokir Slot</a>
+{# Menu aktif ditandai class "on" kalau halaman yang sedang dibuka cocok dengan nama route-nya #}
+<a href="{{ url_for('admin') }}" class="{{ 'on' if request.endpoint == 'admin' }}">Dashboard</a>
+<a href="{{ url_for('admin_unit') }}" class="{{ 'on' if request.endpoint == 'admin_unit' }}">Kelola Unit</a>
+<a href="{{ url_for('admin_block') }}" class="{{ 'on' if request.endpoint == 'admin_block' }}">Blokir Slot</a>
 <a href="{{ url_for('index') }}">Lihat Situs</a>
-{% if require_login %}<form method="post" action="{{ url_for('admin_logout') }}" class="nav__form">{{ csrf() }}<button type="submit">Keluar</button></form>{% endif %}
+
+{# Tombol keluar hanya muncul kalau REQUIRE_ADMIN_LOGIN = True di app.py #}
+{% if require_login %}
+<form method="post" action="{{ url_for('admin_logout') }}" class="nav__form">
+  {{ csrf() }}
+  <button type="submit">Keluar</button>
+</form>
+{% endif %}
 {% endblock %}

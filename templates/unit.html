@@ -1,9 +1,22 @@
+{#
+  unit.html
+  Halaman daftar ruangan, unit, harga, dan game (versi lama yang berdiri sendiri).
+  Isinya mirip bagian "Unit & Harga" di index.html.
+
+  CATATAN: template ini memakai route "reservasi" dan "kalender" yang tidak ada
+  di app.py yang sekarang, jadi akan error kalau dibuka.
+#}
 {% extends "base.html" %}
+
 {% block title %}Unit &amp; Harga{% endblock %}
+
 {% block content %}
 <h1 class="page-title display">Unit &amp; Harga</h1>
 <p class="hint lead">Harga per jam. Pilih ruangan lalu reservasi unit yang kamu mau.</p>
-{% for g in groups %}{% set r = g.room %}
+
+{# Satu blok per ruangan #}
+{% for g in groups %}
+{% set r = g.room %}
 <section class="room-sec" id="{{ r.slug }}">
   <div class="room-sec__head">
     <div>
@@ -12,20 +25,47 @@
     </div>
     <span class="pill {{ 'pill--smoke' if r.smoking }}">{{ 'Smoking' if r.smoking else 'No smoking' }}</span>
   </div>
+
   <div class="grid grid--units">
+    {# Satu kartu per unit #}
     {% for u in g.units %}
     <article class="unit">
       <div class="unit__top">
-        <div><h3 class="display">{{ u.label }}</h3><p class="unit__console">{{ u.console }}</p></div>
+        <div>
+          <h3 class="display">{{ u.label }}</h3>
+          <p class="unit__console">{{ u.console }}</p>
+        </div>
         <div class="unit__price"><strong>{{ u.price|rupiah }}</strong><span>/jam</span></div>
       </div>
-      {% if u.extras %}<div class="tags tags--extra">{% for x in u.extras|csv %}<span>{{ x }}</span>{% endfor %}</div>{% endif %}
-      {% if u.games %}<p class="unit__gl">Daftar game</p><div class="tags">{% for x in u.games|csv %}<span>{{ x }}</span>{% endfor %}</div>{% endif %}
+
+      {# Fasilitas tambahan #}
+      {% if u.extras %}
+      <div class="tags tags--extra">
+        {% for x in u.extras|csv %}<span>{{ x }}</span>{% endfor %}
+      </div>
+      {% endif %}
+
+      {# Daftar game #}
+      {% if u.games %}
+      <p class="unit__gl">Daftar game</p>
+      <div class="tags">
+        {% for x in u.games|csv %}<span>{{ x }}</span>{% endfor %}
+      </div>
+      {% endif %}
+
+      {# Link ke form reservasi dengan unit ini sudah terpilih #}
       <a class="btn btn--ghost btn--sm display" href="{{ url_for('reservasi', unit=u.id) }}">Reservasi unit ini</a>
     </article>
-    {% else %}<p class="hint">Belum ada unit aktif.</p>{% endfor %}
+    {% else %}
+    <p class="hint">Belum ada unit aktif.</p>
+    {% endfor %}
   </div>
-  <p class="room-sec__foot"><a class="link" href="{{ url_for('kalender', room=r.slug) }}">Lihat ketersediaan {{ r.name }} <svg><use href="#i-right"/></svg></a></p>
+
+  <p class="room-sec__foot">
+    <a class="link" href="{{ url_for('kalender', room=r.slug) }}">
+      Lihat ketersediaan {{ r.name }} <svg><use href="#i-right"/></svg>
+    </a>
+  </p>
 </section>
 {% endfor %}
 {% endblock %}

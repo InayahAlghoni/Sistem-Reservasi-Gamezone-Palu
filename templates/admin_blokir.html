@@ -1,34 +1,101 @@
 {% extends "admin_base.html" %}
 {% from "_macros.html" import csrf with context %}
+
 {% block title %}Blokir Slot{% endblock %}
+
 {% block content %}
 <h1 class="page-title display">Tandai Slot Terbooking</h1>
-<p class="hint lead">Untuk reservasi dari WhatsApp, TikTok, atau Instagram, supaya slotnya tidak bisa dipesan lewat website.</p>
+<p class="hint lead">
+  Untuk reservasi dari WhatsApp, TikTok, atau Instagram, supaya slotnya tidak bisa dipesan lewat website.
+</p>
+
+{# ---------- Form tambah blokir ---------- #}
 <form class="card" method="post">
   {{ csrf() }}
+
   <div class="fgrid">
-    <label class="span2">Unit<select class="field field--sm" name="unit" required>
-      {% for g in groups %}<optgroup label="{{ g.room.name }}">{% for u in g.units %}<option value="{{ u.id }}">{{ u.label }} ({{ u.console }})</option>{% endfor %}</optgroup>{% endfor %}
-    </select></label>
-    <label>Tanggal<input class="field field--sm" type="date" name="date" min="{{ today }}" max="{{ max_date }}" value="{{ today }}" required></label>
-    <label>Jam mulai<select class="field field--sm" name="start">{% for h in hours %}<option value="{{ h }}">{{ h|jam }}</option>{% endfor %}</select></label>
-    <label>Durasi<select class="field field--sm" name="duration">{% for n in range(1, 13) %}<option value="{{ n }}">{{ n }} jam</option>{% endfor %}</select></label>
-    <label class="span2">Catatan (mis. nama + sumber)<input class="field field--sm" name="note" maxlength="60" placeholder="Budi · WhatsApp"></label>
+    {# Pilihan unit dikelompokkan per ruangan #}
+    <label class="span2">Unit
+      <select class="field field--sm" name="unit" required>
+        {% for g in groups %}
+        <optgroup label="{{ g.room.name }}">
+          {% for u in g.units %}
+          <option value="{{ u.id }}">{{ u.label }} ({{ u.console }})</option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+    </label>
+
+    {# Tanggal bisa dipilih sampai 60 hari ke depan #}
+    <label>Tanggal
+      <input class="field field--sm" type="date" name="date"
+             min="{{ today }}" max="{{ max_date }}" value="{{ today }}" required>
+    </label>
+
+    <label>Jam mulai
+      <select class="field field--sm" name="start">
+        {% for h in hours %}
+        <option value="{{ h }}">{{ h|jam }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    {# Durasi blokir boleh sampai 12 jam, lebih panjang dari booking pelanggan (maksimal 4 jam) #}
+    <label>Durasi
+      <select class="field field--sm" name="duration">
+        {% for n in range(1, 13) %}
+        <option value="{{ n }}">{{ n }} jam</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="span2">Catatan (mis. nama + sumber)
+      <input class="field field--sm" name="note" maxlength="60" placeholder="Budi · WhatsApp">
+    </label>
   </div>
+
   <button class="btn btn--primary display" type="submit">Tandai Terbooking</button>
 </form>
 
+{# ---------- Daftar blokir yang masih berlaku ---------- #}
 <section class="card card--flush">
   <h2 class="label display pad">Blokir manual mendatang</h2>
-  <div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th>Unit</th><th>Jadwal</th><th>Catatan</th><th></th></tr></thead>
-    <tbody>
-    {% for b in blocks %}
-      <tr><td>{{ b.room_name }}<br><small>{{ b.unit_label }}</small></td>
-        <td>{{ b.date|tanggal_pendek }}<br><small>{{ b.start_hour|jam }}–{{ (b.start_hour+b.duration)|jam }}</small></td>
-        <td>{{ b.note or '—' }}</td>
-        <td><form method="post" action="{{ url_for('admin_block_delete', bid=b.id) }}" onsubmit="return confirm('Hapus blokir ini?')">{{ csrf() }}<button class="btn btn--danger btn--sm" type="submit">Hapus</button></form></td></tr>
-    {% else %}<tr><td colspan="4" class="empty-cell">Belum ada blokir manual.</td></tr>{% endfor %}
-    </tbody></table></div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Unit</th>
+          <th>Jadwal</th>
+          <th>Catatan</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in blocks %}
+        <tr>
+          <td>{{ b.room_name }}<br><small>{{ b.unit_label }}</small></td>
+          <td>
+            {{ b.date|tanggal_pendek }}<br>
+            <small>{{ b.start_hour|jam }}–{{ (b.start_hour + b.duration)|jam }}</small>
+          </td>
+          <td>{{ b.note or '—' }}</td>
+          <td>
+            {# Konfirmasi dulu sebelum menghapus, biar tidak kepencet #}
+            <form method="post" action="{{ url_for('admin_block_delete', bid=b.id) }}"
+                  onsubmit="return confirm('Hapus blokir ini?')">
+              {{ csrf() }}
+              <button class="btn btn--danger btn--sm" type="submit">Hapus</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        {# Tampil kalau belum ada blokir sama sekali #}
+        <tr><td colspan="4" class="empty-cell">Belum ada blokir manual.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endblock %}

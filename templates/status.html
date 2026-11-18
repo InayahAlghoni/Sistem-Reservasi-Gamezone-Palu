@@ -1,15 +1,41 @@
+{#
+  status.html
+  Halaman pelanggan untuk melihat status reservasinya, memuat:
+    - daftar reservasi di perangkat itu, dengan penjelasan status
+    - form upload bukti bayar (hanya untuk reservasi berstatus "pending")
+    - form cari reservasi lain pakai kode booking + nomor WhatsApp
+
+  CATATAN: template ini memakai route status_bukti, status_cari, dan reservasi
+  yang tidak ada di app.py yang sekarang, jadi akan error kalau dibuka.
+#}
 {% extends "base.html" %}
 {% from "_macros.html" import badge, csrf with context %}
+
 {% block title %}Status Reservasi{% endblock %}
 {% block wrap_class %}wrap--narrow{% endblock %}
+
 {% block content %}
 <h1 class="page-title display">Status Reservasi</h1>
-{% set hints = {'pending': 'Belum ada bukti pembayaran. Unggah bukti agar bisa diverifikasi.', 'verifikasi': 'Bukti diterima. Admin sedang memeriksa pembayaranmu.', 'dikonfirmasi': 'Reservasi dikonfirmasi. Datang sesuai jadwal ya!', 'selesai': 'Terima kasih sudah bermain di Gamezone.', 'dibatalkan': 'Reservasi dibatalkan. Slot dilepas kembali.'} %}
+
+{# Kalimat penjelasan untuk tiap status, ditampilkan di bawah kode booking #}
+{% set hints = {
+  'pending': 'Belum ada bukti pembayaran. Unggah bukti agar bisa diverifikasi.',
+  'verifikasi': 'Bukti diterima. Admin sedang memeriksa pembayaranmu.',
+  'dikonfirmasi': 'Reservasi dikonfirmasi. Datang sesuai jadwal ya!',
+  'selesai': 'Terima kasih sudah bermain di Gamezone.',
+  'dibatalkan': 'Reservasi dibatalkan. Slot dilepas kembali.'
+} %}
+
 {% if rows %}
   {% for b in rows %}
+  {# Reservasi yang baru dibuat ditandai class "bk--new" (variabel "baru" berisi kodenya) #}
   <article class="bk {{ 'bk--new' if b.code == baru }}" id="{{ b.code }}">
-    <div class="bk__head"><strong class="display">{{ b.code }}</strong>{{ badge(b.status) }}</div>
+    <div class="bk__head">
+      <strong class="display">{{ b.code }}</strong>
+      {{ badge(b.status) }}
+    </div>
     <p class="bk__hint">{{ hints[b.status] }}</p>
+
     <dl class="summary">
       <div><dt>Ruangan</dt><dd>{{ b.room_name }} · {{ b.unit_label }} ({{ b.console }})</dd></div>
       <div><dt>Tanggal</dt><dd>{{ b.date|tanggal }}</dd></div>
@@ -17,26 +43,41 @@
       <div><dt>Total</dt><dd>{{ b.total|rupiah }}</dd></div>
       <div><dt>Atas nama</dt><dd>{{ b.name }}</dd></div>
     </dl>
+
+    {# Form upload bukti, hanya muncul kalau pelanggan belum mengunggah (status pending) #}
     {% if b.status == 'pending' %}
-    <form class="bk__up" method="post" action="{{ url_for('status_bukti', code=b.code) }}" enctype="multipart/form-data">
+    <form class="bk__up" method="post" action="{{ url_for('status_bukti', code=b.code) }}"
+          enctype="multipart/form-data">
       {{ csrf() }}
-      <input class="field" type="file" name="proof" accept="image/jpeg,image/png,image/webp,application/pdf" required aria-label="Bukti pembayaran">
+      <input class="field" type="file" name="proof"
+             accept="image/jpeg,image/png,image/webp,application/pdf"
+             required aria-label="Bukti pembayaran">
       <button class="btn btn--primary btn--sm display" type="submit">Unggah bukti</button>
     </form>
     {% endif %}
   </article>
   {% endfor %}
 {% else %}
-  <div class="card empty"><p>Belum ada reservasi di perangkat ini.</p><a class="btn btn--primary display" href="{{ url_for('reservasi') }}">Buat Reservasi</a></div>
+  {# Tampil kalau belum ada reservasi sama sekali di perangkat ini #}
+  <div class="card empty">
+    <p>Belum ada reservasi di perangkat ini.</p>
+    <a class="btn btn--primary display" href="{{ url_for('reservasi') }}">Buat Reservasi</a>
+  </div>
 {% endif %}
 
+
+{# Cari reservasi yang dibuat dari perangkat lain #}
 <section class="card">
   <h2 class="label display">Cari reservasi lain</h2>
-  <p class="hint" style="margin:0 0 14px">Reservasi dari perangkat lain bisa ditampilkan dengan kode booking dan nomor WhatsApp.</p>
+  <p class="hint" style="margin:0 0 14px">
+    Reservasi dari perangkat lain bisa ditampilkan dengan kode booking dan nomor WhatsApp.
+  </p>
   <form method="post" action="{{ url_for('status_cari') }}" class="find">
     {{ csrf() }}
-    <input class="field" name="kode" placeholder="Kode, mis. GZ-A1B2C3" required maxlength="12" aria-label="Kode booking">
-    <input class="field" name="hp" type="tel" placeholder="Nomor WhatsApp" required aria-label="Nomor WhatsApp">
+    <input class="field" name="kode" placeholder="Kode, mis. GZ-A1B2C3"
+           required maxlength="12" aria-label="Kode booking">
+    <input class="field" name="hp" type="tel" placeholder="Nomor WhatsApp"
+           required aria-label="Nomor WhatsApp">
     <button class="btn btn--ghost display" type="submit">Cari</button>
   </form>
 </section>

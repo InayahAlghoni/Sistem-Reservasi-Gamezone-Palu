@@ -1,13 +1,20 @@
 {% extends "base.html" %}
 {% from "_macros.html" import csrf with context %}
+
 {% block title %}Login Admin{% endblock %}
 {% block wrap_class %}wrap--narrow{% endblock %}
+
 {% block content %}
 <h1 class="page-title display">Login Admin</h1>
+
+{# Form tanpa action, jadi dikirim ke alamat halaman ini sendiri #}
 <form class="card" method="post">
   {{ csrf() }}
+
   <label class="label display" for="password">Password</label>
-  <input class="field" id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+  <input class="field" id="password" name="password" type="password"
+         autocomplete="current-password" required autofocus>
+
   <button class="btn btn--primary btn--block display" style="margin-top:20px" type="submit">Masuk</button>
 </form>
 {% endblock %}

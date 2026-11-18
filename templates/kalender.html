@@ -1,46 +1,111 @@
+{#
+  kalender.html
+  Tabel ketersediaan jam per ruangan: baris = unit, kolom = jam.
+  Slot yang masih kosong bisa diklik untuk lanjut ke reservasi.
+
+  CATATAN: template ini memanggil route "kalender" dan "reservasi" yang TIDAK ada
+  di app.py yang sekarang. Kalau halaman ini dibuka, Flask akan error. Template ini
+  sepertinya sisa dari versi lama (sebelum jadi satu halaman). Boleh dihapus kalau
+  tidak dipakai, atau route-nya dibuat dulu kalau memang mau dipakai.
+
+  Data yang dibutuhkan: groups, group, rows, hours, d, prev_d, next_d, today, max_date.
+#}
 {% extends "base.html" %}
+
 {% block title %}Kalender {{ group.room.name }}{% endblock %}
+
 {% block content %}
 <h1 class="page-title display">Kalender Ketersediaan</h1>
+
+{# Tab pindah ruangan. Tab ruangan yang sedang dibuka diberi class "on" #}
 <div class="tabs" role="tablist">
-  {% for g in groups %}<a role="tab" aria-selected="{{ 'true' if g.room.slug==group.room.slug else 'false' }}" class="tab {{ 'on' if g.room.slug==group.room.slug }}" href="{{ url_for('kalender', room=g.room.slug, date=d) }}">{{ g.room.name }}</a>{% endfor %}
+  {% for g in groups %}
+  <a role="tab"
+     aria-selected="{{ 'true' if g.room.slug == group.room.slug else 'false' }}"
+     class="tab {{ 'on' if g.room.slug == group.room.slug }}"
+     href="{{ url_for('kalender', room=g.room.slug, date=d) }}">{{ g.room.name }}</a>
+  {% endfor %}
 </div>
 
+{# Navigasi tanggal: panah kiri, pilih tanggal, panah kanan #}
 <form class="datenav" method="get" action="{{ url_for('kalender') }}">
   <input type="hidden" name="room" value="{{ group.room.slug }}">
-  {% if prev_d %}<a class="icon-btn" href="{{ url_for('kalender', room=group.room.slug, date=prev_d) }}" aria-label="Hari sebelumnya"><svg><use href="#i-left"/></svg></a>{% else %}<span class="icon-btn is-off" aria-hidden="true"><svg><use href="#i-left"/></svg></span>{% endif %}
-  <label class="datenav__pick"><span class="sr-only">Pilih tanggal</span>
-    <input class="field" type="date" name="date" value="{{ d }}" min="{{ today }}" max="{{ max_date }}" onchange="this.form.submit()">
+
+  {# Panah kiri. Kalau sudah di batas awal, jadi abu-abu dan tidak bisa diklik #}
+  {% if prev_d %}
+  <a class="icon-btn" href="{{ url_for('kalender', room=group.room.slug, date=prev_d) }}"
+     aria-label="Hari sebelumnya"><svg><use href="#i-left"/></svg></a>
+  {% else %}
+  <span class="icon-btn is-off" aria-hidden="true"><svg><use href="#i-left"/></svg></span>
+  {% endif %}
+
+  <label class="datenav__pick">
+    <span class="sr-only">Pilih tanggal</span>
+    <input class="field" type="date" name="date" value="{{ d }}"
+           min="{{ today }}" max="{{ max_date }}" onchange="this.form.submit()">
   </label>
-  {% if next_d %}<a class="icon-btn" href="{{ url_for('kalender', room=group.room.slug, date=next_d) }}" aria-label="Hari berikutnya"><svg><use href="#i-right"/></svg></a>{% else %}<span class="icon-btn is-off" aria-hidden="true"><svg><use href="#i-right"/></svg></span>{% endif %}
+
+  {# Panah kanan, aturannya sama dengan panah kiri #}
+  {% if next_d %}
+  <a class="icon-btn" href="{{ url_for('kalender', room=group.room.slug, date=next_d) }}"
+     aria-label="Hari berikutnya"><svg><use href="#i-right"/></svg></a>
+  {% else %}
+  <span class="icon-btn is-off" aria-hidden="true"><svg><use href="#i-right"/></svg></span>
+  {% endif %}
+
+  {# Cadangan untuk browser yang JavaScript-nya dimatikan #}
   <noscript><button class="btn btn--sm" type="submit">Tampilkan</button></noscript>
 </form>
+
 <p class="datenav__label">{{ d|tanggal }}</p>
 
+{# Keterangan warna #}
 <ul class="legend" aria-label="Keterangan">
   <li><span class="dot dot--free"></span>Tersedia</li>
   <li><span class="dot dot--booked"></span>Terbooking</li>
   <li><span class="dot dot--past"></span>Sudah lewat</li>
 </ul>
 
+{# Tabel ketersediaan. Dibungkus div supaya bisa digeser ke samping di layar HP #}
 <div class="cal" role="region" aria-label="Tabel ketersediaan" tabindex="0">
   <table>
-    <thead><tr><th scope="col">Unit</th>{% for h in hours %}<th scope="col">{{ h|jam }}</th>{% endfor %}</tr></thead>
-    <tbody>
-    {% for row in rows %}
+    <thead>
       <tr>
-        <th scope="row"><strong>{{ row.unit.label }}</strong><small>{{ row.unit.price|rupiah }}/jam</small></th>
+        <th scope="col">Unit</th>
+        {% for h in hours %}<th scope="col">{{ h|jam }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <th scope="row">
+          <strong>{{ row.unit.label }}</strong>
+          <small>{{ row.unit.price|rupiah }}/jam</small>
+        </th>
+
+        {# Satu sel per jam. Ada tiga kemungkinan: kosong (link), terisi, atau sudah lewat #}
         {% for c in row.cells %}
         <td>
-          {% if c.state == 'free' %}<a class="cell cell--free" href="{{ url_for('reservasi', unit=row.unit.id, date=d, start=c.hour) }}">Tersedia</a>
-          {% elif c.state == 'booked' %}<button class="cell cell--booked" type="button" disabled>Terisi</button>
-          {% else %}<button class="cell cell--past" type="button" disabled>—</button>{% endif %}
+          {% if c.state == 'free' %}
+          <a class="cell cell--free"
+             href="{{ url_for('reservasi', unit=row.unit.id, date=d, start=c.hour) }}">Tersedia</a>
+          {% elif c.state == 'booked' %}
+          <button class="cell cell--booked" type="button" disabled>Terisi</button>
+          {% else %}
+          <button class="cell cell--past" type="button" disabled>—</button>
+          {% endif %}
         </td>
         {% endfor %}
       </tr>
-    {% else %}<tr><td colspan="{{ hours|length + 1 }}">Belum ada unit aktif.</td></tr>{% endfor %}
+      {% else %}
+      <tr><td colspan="{{ hours|length + 1 }}">Belum ada unit aktif.</td></tr>
+      {% endfor %}
     </tbody>
   </table>
 </div>
-<p class="hint">Klik slot <strong>Tersedia</strong> untuk lanjut reservasi. Slot terbooking tidak bisa dipilih. Slot berlabel 00:00 = tengah malam, tutup pukul 01:00.</p>
+
+<p class="hint">
+  Klik slot <strong>Tersedia</strong> untuk lanjut reservasi. Slot terbooking tidak bisa dipilih.
+  Slot berlabel 00:00 = tengah malam, tutup pukul 01:00.
+</p>
 {% endblock %}
